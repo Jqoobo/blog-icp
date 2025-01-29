@@ -1,0 +1,27 @@
+{
+  "canisters": {
+    "blog-icp-backend": {
+      "candid": "src/blog-icp-backend/blog-icp-backend.did",
+      "package": "blog-icp-backend",
+      "type": "rust"
+    },
+    "blog-icp-frontend": {
+      "dependencies": [
+        "blog-icp-backend"
+      ],
+      "source": [
+        "src/blog-icp-frontend/dist"
+      ],
+      "type": "assets",
+      "workspace": "blog-icp-frontend"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
