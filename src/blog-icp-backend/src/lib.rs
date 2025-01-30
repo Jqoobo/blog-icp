@@ -210,3 +210,10 @@ fn remove_comment(blog_id: u64, comment_id: u64) -> Result<(), String> {
         Err("Blog not found".to_string())
     })
 }
+
+#[update]
+fn remove_tag_from_config(tag: String) -> Result<(), String> {
+    CONFIG.with(|config| {
+        config.borrow_mut().remove_tag(&tag)
+    })
+}

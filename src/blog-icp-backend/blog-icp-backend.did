@@ -41,4 +41,5 @@ service : {
   "add_comment": (nat64, text) -> (CommentResult);
   "edit_comment": (nat64, nat64, text) -> (CommentResult);
   "remove_comment": (nat64, nat64) -> (variant { Ok; Err : text });
+   "remove_tag_from_config": (text) -> (variant { Ok; Err : text });
 }

@@ -32,16 +32,14 @@ function Post({ blogs, getBlogs }) {
   }
 
   async function handleSave() {
-    const newTitle = title.trim() === "" ? null : title;
-    const newContent = content.trim() === "" ? null : content;
-    const newTags = selectedTags.length === 0 ? null : selectedTags;
+    const newTags = selectedTags.length === 0 ? [] : selectedTags;
 
-    const result = await blog_icp_backend.edit_blog(blog.id, newTitle, newContent, newTags);
+    const result = await blog_icp_backend.edit_blog(blog.id, [title], [content], [newTags]);
 
     if ("Ok" in result) {
       setMessage("Post updated successfully!");
       setIsEditing(false);
-      getBlogs(); // Odśwież listę postów
+      getBlogs(); // 🔄 Odświeżamy posty po edycji
     } else {
       setMessage(`Error: ${result.Err}`);
     }
@@ -51,16 +49,17 @@ function Post({ blogs, getBlogs }) {
     if (comment.trim() === "") return;
     await blog_icp_backend.add_comment(blog.id, comment);
     setComment("");
-    getBlogs(); // Odśwież posty po dodaniu komentarza
+    getBlogs(); // 🔄 Odświeżamy posty po dodaniu komentarza
   }
 
   function toggleTag(tag) {
-    setSelectedTags((prevTags) => (prevTags.includes(tag) ? prevTags.filter((t) => t !== tag) : [...prevTags, tag]));
+    setSelectedTags((prevTags) =>
+      prevTags.includes(tag) ? prevTags.filter((t) => t !== tag) : [...prevTags, tag]
+    );
   }
 
-  // Funkcja konwertująca timestamp na czytelną datę i godzinę
   function formatDate(timestamp) {
-    const date = new Date(Number(timestamp) / 1_000_000); // Przekształcamy timestamp z nanosekund na milisekundy
+    const date = new Date(Number(timestamp) / 1_000_000);
     return date.toLocaleString("pl-PL", {
       year: "numeric",
       month: "long",
@@ -80,6 +79,7 @@ function Post({ blogs, getBlogs }) {
       {isEditing ? (
         <>
           <h2 className="text-lg font-bold">Edit Post</h2>
+
           <div>
             <p className="font-bold text-black">Title: </p>
             <input
@@ -122,10 +122,16 @@ function Post({ blogs, getBlogs }) {
           </div>
 
           <div className="flex gap-4 mt-4">
-            <button onClick={handleSave} className="px-4 py-1 text-white bg-green-500 rounded-3xl hover:scale-110">
+            <button
+              onClick={handleSave}
+              className="px-4 py-1 text-white bg-green-500 rounded-3xl hover:scale-110"
+            >
               Save
             </button>
-            <button onClick={handleCancel} className="px-4 py-1 text-white bg-red-500 rounded-3xl hover:scale-110">
+            <button
+              onClick={handleCancel}
+              className="px-4 py-1 text-white bg-red-500 rounded-3xl hover:scale-110"
+            >
               Cancel
             </button>
           </div>
@@ -133,10 +139,11 @@ function Post({ blogs, getBlogs }) {
       ) : (
         <>
           <div className="pb-4 mb-4 border-b-2 border-indigo-500 border-solid">
-            <div className="mb-1 text-right">{new Date(Number(blog.date) / 1_000_000).toLocaleString()}</div>
+            <div className="mb-1 text-right">
+              {new Date(Number(blog.date) / 1_000_000).toLocaleString()}
+            </div>
             <h3 className="mb-2 text-xl">{blog.title}</h3>
             <p>{blog.content}</p>
-
             <div className="flex flex-wrap gap-2 mt-2">
               {blog.tags.map((tag, idx) => (
                 <div key={idx} className="px-4 py-1 text-sm text-white bg-indigo-400 rounded-3xl w-fit">
@@ -146,7 +153,10 @@ function Post({ blogs, getBlogs }) {
             </div>
           </div>
 
-          <button onClick={handleEdit} className="px-4 py-1 text-white bg-indigo-500 rounded-3xl hover:scale-110">
+          <button
+            onClick={handleEdit}
+            className="px-4 py-1 text-white bg-indigo-500 rounded-3xl hover:scale-110"
+          >
             Edit
           </button>
 
@@ -171,7 +181,10 @@ function Post({ blogs, getBlogs }) {
               className="w-full p-2 border rounded-lg shadow-sm"
               placeholder="Write a comment..."
             />
-            <button onClick={handleAddComment} className="p-2 mt-2 text-white bg-indigo-400 rounded-lg hover:scale-105">
+            <button
+              onClick={handleAddComment}
+              className="p-2 mt-2 text-white bg-indigo-400 rounded-lg hover:scale-105"
+            >
               Add Comment
             </button>
           </div>

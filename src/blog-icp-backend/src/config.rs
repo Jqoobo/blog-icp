@@ -1,4 +1,5 @@
 use candid::{CandidType, Deserialize};
+use std::cell::RefCell;
 
 #[derive(Clone, CandidType, Deserialize, Debug)]
 pub struct Config {
@@ -16,5 +17,13 @@ impl Config {
             max_title_len: 250,
             tags: Vec::new(),
         }
+    }
+
+    pub fn remove_tag(&mut self, tag: &str) -> Result<(), String> {
+        if !self.tags.contains(&tag.to_string()) {
+            return Err(format!("Tag \"{}\" not found", tag));
+        }
+        self.tags.retain(|t| t != tag);
+        Ok(())
     }
 }
