@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { blog_icp_backend } from "../../../declarations/blog-icp-backend";
 
 function AddPost({ getBlogs, getTags }) {
@@ -8,6 +9,8 @@ function AddPost({ getBlogs, getTags }) {
   const [selectedTags, setSelectedTags] = useState([]);
   const [newTag, setNewTag] = useState("");
   const [message, setMessage] = useState("");
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchTags();
@@ -32,6 +35,7 @@ function AddPost({ getBlogs, getTags }) {
       setContent("");
       setSelectedTags([]);
       getBlogs();
+      navigate("/");
     } else {
       setMessage(`Error: ${result.Err}`);
     }
@@ -52,9 +56,7 @@ function AddPost({ getBlogs, getTags }) {
   }
 
   function toggleTag(tag) {
-    setSelectedTags((prevTags) =>
-      prevTags.includes(tag) ? prevTags.filter((t) => t !== tag) : [...prevTags, tag]
-    );
+    setSelectedTags((prevTags) => (prevTags.includes(tag) ? prevTags.filter((t) => t !== tag) : [...prevTags, tag]));
   }
 
   return (
@@ -71,7 +73,6 @@ function AddPost({ getBlogs, getTags }) {
             className="w-full px-4 py-1 border-2 border-black outline-none rounded-3xl hover:border-indigo-500"
           />
         </div>
-
         <div>
           <p className="font-bold text-black">Content: </p>
           <textarea
@@ -80,7 +81,6 @@ function AddPost({ getBlogs, getTags }) {
             className="w-full rounded-3xl py-1 px-4 outline-none min-h-[100px] border-2 border-black hover:border-indigo-500"
           />
         </div>
-
         <div>
           <p className="font-bold text-black">Add a New Tag: </p>
           <div className="flex">
@@ -100,7 +100,6 @@ function AddPost({ getBlogs, getTags }) {
             </button>
           </div>
         </div>
-
         <div>
           <p className="font-bold text-black">Select Tags: </p>
           <div className="flex flex-wrap gap-2">
