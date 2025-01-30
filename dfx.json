@@ -3,6 +3,7 @@
     "blog-icp-backend": {
       "candid": "src/blog-icp-backend/blog-icp-backend.did",
       "package": "blog-icp-backend",
+      "src": "src/blog-icp-backend/Cargo.toml",
       "type": "rust"
     },
     "blog-icp-frontend": {
