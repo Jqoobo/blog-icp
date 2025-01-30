@@ -12,7 +12,6 @@ function Post({ blogs, getBlogs }) {
   const [selectedTags, setSelectedTags] = useState(blog?.tags || []);
   const [availableTags, setAvailableTags] = useState([]);
   const [message, setMessage] = useState("");
-
   const [comment, setComment] = useState("");
 
   async function fetchTags() {
@@ -33,23 +32,13 @@ function Post({ blogs, getBlogs }) {
   }
 
   async function handleSave() {
-    const newTitle = title.trim() === "" ? [] : [title];
-    const newContent = content.trim() === "" ? [] : [content];
-    const newTags = selectedTags.length === 0 ? [] : [selectedTags];
-
-    try {
-      const result = await blog_icp_backend.edit_blog(blog.id, newTitle, newContent, newTags);
-
-      if ("Ok" in result) {
-        setMessage("Post updated successfully!");
-        setIsEditing(false);
-        getBlogs();
-      } else {
-        setMessage(`Error: ${result.Err}`);
-      }
-    } catch (error) {
-      console.error("Error while editing post:", error);
-      setMessage("Error while editing post");
+    const result = await blog_icp_backend.edit_blog(blog.id, title, content, selectedTags);
+    if ("Ok" in result) {
+      setMessage("Post updated successfully!");
+      setIsEditing(false);
+      getBlogs();
+    } else {
+      setMessage(`Error: ${result.Err}`);
     }
   }
 
@@ -57,11 +46,26 @@ function Post({ blogs, getBlogs }) {
     if (comment.trim() === "") return;
     await blog_icp_backend.add_comment(blog.id, comment);
     setComment("");
-    getBlogs();
+    getBlogs(); // Odśwież posty po dodaniu komentarza
   }
 
   function toggleTag(tag) {
-    setSelectedTags((prevTags) => (prevTags.includes(tag) ? prevTags.filter((t) => t !== tag) : [...prevTags, tag]));
+    setSelectedTags((prevTags) =>
+      prevTags.includes(tag) ? prevTags.filter((t) => t !== tag) : [...prevTags, tag]
+    );
+  }
+
+  // Funkcja konwertująca timestamp na czytelną datę i godzinę
+  function formatDate(timestamp) {
+    const date = new Date(Number(timestamp) / 1_000_000); // Przekształcamy timestamp z nanosekund na milisekundy
+    return date.toLocaleString("pl-PL", {  
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
   }
 
   if (!blog) {
@@ -115,10 +119,16 @@ function Post({ blogs, getBlogs }) {
           </div>
 
           <div className="flex gap-4 mt-4">
-            <button onClick={handleSave} className="px-4 py-1 text-white bg-green-500 rounded-3xl hover:scale-110">
+            <button
+              onClick={handleSave}
+              className="px-4 py-1 text-white bg-green-500 rounded-3xl hover:scale-110"
+            >
               Save
             </button>
-            <button onClick={handleCancel} className="px-4 py-1 text-white bg-red-500 rounded-3xl hover:scale-110">
+            <button
+              onClick={handleCancel}
+              className="px-4 py-1 text-white bg-red-500 rounded-3xl hover:scale-110"
+            >
               Cancel
             </button>
           </div>
@@ -126,7 +136,9 @@ function Post({ blogs, getBlogs }) {
       ) : (
         <>
           <div className="pb-4 mb-4 border-b-2 border-indigo-500 border-solid">
-            <div className="mb-1 text-right">{new Date(Number(blog.date) / 1_000_000).toLocaleString()}</div>
+            <div className="mb-1 text-right">
+              {new Date(Number(blog.date) / 1_000_000).toLocaleString()}
+            </div>
             <h3 className="mb-2 text-xl">{blog.title}</h3>
             <p>{blog.content}</p>
 
@@ -139,29 +151,38 @@ function Post({ blogs, getBlogs }) {
             </div>
           </div>
 
-          <button onClick={handleEdit} className="px-4 py-1 text-white bg-indigo-500 rounded-3xl hover:scale-110">
+          <button
+            onClick={handleEdit}
+            className="px-4 py-1 text-white bg-indigo-500 rounded-3xl hover:scale-110"
+          >
             Edit
           </button>
 
+          {/* Sekcja komentarzy */}
           <h4 className="mt-6 text-lg font-bold">Comments</h4>
           {blog.comments.length === 0 ? (
             <p>No comments yet.</p>
           ) : (
             blog.comments.map((c, index) => (
-              <div key={index} className="p-2 my-2 border">
+              <div key={index} className="p-2 my-2 border rounded-lg shadow-md">
                 <p>{c.content}</p>
+                <p className="mt-1 text-sm text-gray-500">{formatDate(c.date)}</p>
               </div>
             ))
           )}
 
+          {/* Dodawanie komentarzy */}
           <div className="mt-4">
             <textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              className="w-full p-2 border"
+              className="w-full p-2 border rounded-lg shadow-sm"
               placeholder="Write a comment..."
             />
-            <button onClick={handleAddComment} className="p-2 mt-2 text-white bg-indigo-400 rounded">
+            <button
+              onClick={handleAddComment}
+              className="p-2 mt-2 text-white bg-indigo-400 rounded-lg hover:scale-105"
+            >
               Add Comment
             </button>
           </div>
