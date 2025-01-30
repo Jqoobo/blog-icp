@@ -22,8 +22,8 @@ function ManageTags({ getTags }) {
     if ("Ok" in result) {
       setMessage("Tag added successfully!");
       setNewTag("");
-      fetchTags(); // 🔄 Odśwież listę tagów
-      getTags(); // 🔄 Powiadamiamy inne komponenty o zmianach
+      fetchTags();
+      getTags();
     } else {
       setMessage(`Error: ${result.Err}`);
     }
@@ -33,8 +33,8 @@ function ManageTags({ getTags }) {
     const result = await blog_icp_backend.remove_tag_from_config(tag);
     if ("Ok" in result) {
       setMessage(`Tag "${tag}" removed successfully!`);
-      fetchTags(); // 🔄 Odśwież listę tagów
-      getTags(); // 🔄 Powiadamiamy inne komponenty o zmianach
+      fetchTags();
+      getTags();
     } else {
       setMessage(`Error: ${result.Err}`);
     }
@@ -44,7 +44,6 @@ function ManageTags({ getTags }) {
     <main className="container h-full p-4 mx-auto">
       <h2 className="text-lg font-bold">Manage Tags</h2>
 
-      {/* Dodawanie nowego tagu */}
       <div className="flex mt-4">
         <input
           type="text"
@@ -62,7 +61,6 @@ function ManageTags({ getTags }) {
         </button>
       </div>
 
-      {/* Lista tagów */}
       <div className="mt-4">
         <h3 className="font-bold text-black">Existing Tags:</h3>
         <div className="flex flex-wrap gap-2 mt-2">

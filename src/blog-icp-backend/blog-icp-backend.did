@@ -1,5 +1,6 @@
 type Comment = record {
   id : nat64;
+  owner : principal;
   content : text;
   date : nat64;
 };
@@ -33,7 +34,7 @@ service : {
 
   "get_config": () -> (Config) query;
 
-  "add_blog": (text, text, vec text) -> (BlogResult);
+  "add_blog": (text, text, vec text) -> (BlogResult); 
   "edit_blog": (nat64, opt text, opt text, opt vec text) -> (BlogResult);
   "remove_blog": (nat64) -> (variant { Ok; Err : text });
   "get_blogs": () -> (vec Blog) query;
@@ -41,5 +42,6 @@ service : {
   "add_comment": (nat64, text) -> (CommentResult);
   "edit_comment": (nat64, nat64, text) -> (CommentResult);
   "remove_comment": (nat64, nat64) -> (variant { Ok; Err : text });
-   "remove_tag_from_config": (text) -> (variant { Ok; Err : text });
-}
+
+  "remove_tag_from_config": (text) -> (variant { Ok; Err : text });
+} 

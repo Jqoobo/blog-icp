@@ -194,14 +194,32 @@ function Post({ blogs, getBlogs }) {
       )}
 
       <h4 className="mt-6 text-lg font-bold">Comments</h4>
-      {blog.comments.length === 0 ? (
+      {blog.comments && blog.comments.length === 0 ? (
         <p>No comments yet.</p>
       ) : (
         blog.comments.map((c, index) => (
           <div key={index} className="flex items-center justify-between p-2 my-2 border rounded-lg shadow-md">
             <div>
-              <p>{c.content}</p>
-              <p className="mt-1 text-sm text-gray-500">{formatDate(c.date)}</p>
+              {editingCommentId === c.id ? (
+                <>
+                  <textarea
+                    value={editingCommentText}
+                    onChange={(e) => setEditingCommentText(e.target.value)}
+                    className="w-full rounded-3xl py-1 px-4 outline-none min-h-[50px] border-2 border-black hover:border-indigo-500"
+                  />
+                  <button
+                    onClick={() => handleSaveComment(c.id)}
+                    className="px-3 py-1 mt-2 text-white bg-green-500 rounded-lg hover:scale-105"
+                  >
+                    Save
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p>{c.content}</p>
+                  <p className="mt-1 text-sm text-gray-500">{formatDate(c.date)}</p>
+                </>
+              )}
             </div>
             <div className="flex">
               <button onClick={() => handleEditComment(c.id)} className="px-3 py-1 ml-2 text-white bg-yellow-500 rounded-lg hover:scale-105">✏️</button>
@@ -210,6 +228,21 @@ function Post({ blogs, getBlogs }) {
           </div>
         ))
       )}
+
+      <div className="mt-4">
+        <textarea
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          placeholder="Add a comment"
+          className="w-full rounded-3xl py-1 px-4 outline-none min-h-[50px] border-2 border-black hover:border-indigo-500"
+        />
+        <button
+          onClick={handleAddComment}
+          className="px-4 py-1 mt-2 text-white bg-blue-500 rounded-3xl hover:scale-110"
+        >
+          Add Comment
+        </button>
+      </div>
 
       {message && <div className="mt-4 font-bold text-red-500">{message}</div>}
     </main>

@@ -10,6 +10,7 @@ function Home({ blogs }) {
         <div key={index} className="pb-4 mb-4 border-b-2 border-indigo-500">
           <div className="mb-1 text-right">{new Date(Number(blog.date) / 1_000_000).toLocaleString()}</div>
           <h3 className="mb-2 text-xl">{blog.title}</h3>
+          <div className="mb-2 text-sm text-gray-600">By {blog.owner.toText()}</div>
           <div className="flex gap-2 mt-2">
             {blog.tags.map((tag, idx) => (
               <div key={idx} className="px-4 py-1 text-sm text-white bg-indigo-400 rounded-3xl">
@@ -17,7 +18,9 @@ function Home({ blogs }) {
               </div>
             ))}
           </div>
-          <Link to={`/post/${index}`} className="text-blue-500">Read more</Link>
+          <Link to={`/post/${index}`} className="text-blue-500">
+            Read more
+          </Link>
         </div>
       ))}
     </main>

@@ -1,5 +1,4 @@
 use candid::{CandidType, Deserialize};
-use std::cell::RefCell;
 
 #[derive(Clone, CandidType, Deserialize, Debug)]
 pub struct Config {
@@ -20,10 +19,11 @@ impl Config {
     }
 
     pub fn remove_tag(&mut self, tag: &str) -> Result<(), String> {
-        if !self.tags.contains(&tag.to_string()) {
+        let tag_string = tag.to_string();
+        if !self.tags.contains(&tag_string) {
             return Err(format!("Tag \"{}\" not found", tag));
         }
-        self.tags.retain(|t| t != tag);
+        self.tags.retain(|t| t != &tag_string);
         Ok(())
     }
 }

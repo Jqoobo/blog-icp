@@ -1,8 +1,8 @@
 use std::cell::RefCell;
 
 use ic_cdk_macros::{init, query, update};
-use ic_cdk::export::candid::{CandidType, Deserialize, Principal};
-use serde::Serialize;
+use ic_cdk::export::candid::{CandidType, Deserialize};
+use ic_cdk::api::{caller, time};
 
 mod blog;
 mod config;
@@ -80,7 +80,7 @@ fn add_blog(title: String, content: String, tags: Vec<String>) -> BlogResult {
         return BlogResult::Err("Tags are not valid!".to_string());
     }
 
-    let who = ic_cdk::api::caller();
+    let who = caller();
 
     let blog_id = NEXT_BLOG_ID.with(|id| {
         let current = *id.borrow();
@@ -98,39 +98,25 @@ fn add_blog(title: String, content: String, tags: Vec<String>) -> BlogResult {
 }
 
 #[update]
-fn edit_blog(
-    blog_id: u64,
-    new_title: Option<String>,
-    new_content: Option<String>,
-    new_tags: Option<Vec<String>>,
-) -> BlogResult {
-    let config = CONFIG.with(|c| c.borrow().clone());
+fn edit_blog(blog_id: u64, new_title: Option<String>, new_content: Option<String>, new_tags: Option<Vec<String>>) -> BlogResult {
+    let caller = caller();
     BLOGS.with(|blogs| {
         let mut blogs_ref = blogs.borrow_mut();
 
         if let Some(blog) = blogs_ref.iter_mut().find(|b| b.id == blog_id) {
+            if blog.owner.to_text() != caller.to_text() {
+                return BlogResult::Err("You can only edit your own posts.".to_string());
+            }
+
             if let Some(t) = new_title {
-                if t.len() > config.max_title_len as usize {
-                    return BlogResult::Err("Title is too long!".to_string());
-                }
                 blog.title = t;
             }
 
             if let Some(c) = new_content {
-                if c.len() > config.max_content_len as usize {
-                    return BlogResult::Err("Content is too long!".to_string());
-                }
                 blog.content = c;
             }
 
             if let Some(ts) = new_tags {
-                if ts.len() > config.max_tags_count as usize {
-                    return BlogResult::Err("Too many tags!".to_string());
-                }
-                let invalid_tag = ts.iter().find(|tag| !config.tags.contains(*tag));
-                if invalid_tag.is_some() {
-                    return BlogResult::Err("Tags are not valid!".to_string());
-                }
                 blog.tags = ts;
             }
 
@@ -140,16 +126,16 @@ fn edit_blog(
     })
 }
 
-// Usunięcie bloga
 #[update]
 fn remove_blog(blog_id: u64) -> Result<(), String> {
+    let caller = caller();
     BLOGS.with(|blogs| {
         let mut blogs_ref = blogs.borrow_mut();
         let len_before = blogs_ref.len();
-        blogs_ref.retain(|b| b.id != blog_id);
+        blogs_ref.retain(|b| b.id != blog_id || b.owner == caller);
 
         if blogs_ref.len() == len_before {
-            return Err(format!("Blog with id={} not found", blog_id));
+            return Err("You can only delete your own posts.".to_string());
         }
         Ok(())
     })
@@ -162,6 +148,7 @@ fn get_blogs() -> Vec<Blog> {
 
 #[update]
 fn add_comment(blog_id: u64, content: String) -> CommentResult {
+    let caller = caller();
     BLOGS.with(|blogs| {
         let mut blogs_ref = blogs.borrow_mut();
         if let Some(blog) = blogs_ref.iter_mut().find(|b| b.id == blog_id) {
@@ -171,7 +158,7 @@ fn add_comment(blog_id: u64, content: String) -> CommentResult {
                 current
             });
 
-            let new_comment = Comment::new(comment_id, content);
+            let new_comment = Comment::new(comment_id, caller, content);
             blog.comments.push(new_comment.clone());
             return CommentResult::Ok(new_comment);
         }
@@ -181,12 +168,17 @@ fn add_comment(blog_id: u64, content: String) -> CommentResult {
 
 #[update]
 fn edit_comment(blog_id: u64, comment_id: u64, new_content: String) -> CommentResult {
+    let caller = caller();
     BLOGS.with(|blogs| {
         let mut blogs_ref = blogs.borrow_mut();
         if let Some(blog) = blogs_ref.iter_mut().find(|b| b.id == blog_id) {
             if let Some(comment) = blog.comments.iter_mut().find(|c| c.id == comment_id) {
+                if comment.owner != caller {
+                    return CommentResult::Err("You can only edit your own comments.".to_string());
+                }
+
                 comment.content = new_content;
-                comment.date = ic_cdk::api::time();
+                comment.date = time();
                 return CommentResult::Ok(comment.clone());
             }
             return CommentResult::Err("Comment not found".to_string());
@@ -197,13 +189,14 @@ fn edit_comment(blog_id: u64, comment_id: u64, new_content: String) -> CommentRe
 
 #[update]
 fn remove_comment(blog_id: u64, comment_id: u64) -> Result<(), String> {
+    let caller = caller();
     BLOGS.with(|blogs| {
         let mut blogs_ref = blogs.borrow_mut();
         if let Some(blog) = blogs_ref.iter_mut().find(|b| b.id == blog_id) {
             let len_before = blog.comments.len();
-            blog.comments.retain(|c| c.id != comment_id);
+            blog.comments.retain(|c| c.id != comment_id || c.owner != caller);
             if blog.comments.len() == len_before {
-                return Err("Comment not found".to_string());
+                return Err("You can only delete your own comments.".to_string());
             }
             return Ok(());
         }
@@ -216,4 +209,4 @@ fn remove_tag_from_config(tag: String) -> Result<(), String> {
     CONFIG.with(|config| {
         config.borrow_mut().remove_tag(&tag)
     })
-}
+} 

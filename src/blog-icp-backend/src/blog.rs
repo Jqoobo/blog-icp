@@ -1,31 +1,32 @@
-use ic_cdk::api::{time, caller};
+use ic_cdk::api::time;
+use ic_cdk::export::candid::{CandidType, Deserialize};
 use ic_cdk::export::Principal;
-use serde::{Deserialize, Serialize};
-use candid::CandidType;
+use serde::Serialize;
 
 #[derive(Clone, CandidType, Deserialize, Serialize, Debug)]
 pub struct Comment {
     pub id: u64,
+    pub owner: Principal,
     pub content: String,
     pub date: u64,
 }
 
-// Wpis blogowy
 #[derive(Clone, CandidType, Deserialize, Serialize, Debug)]
 pub struct Blog {
     pub id: u64,
     pub owner: Principal,
     pub title: String,
-    pub date: u64, 
+    pub date: u64,
     pub content: String,
     pub tags: Vec<String>,
     pub comments: Vec<Comment>,
 }
 
 impl Comment {
-    pub fn new(id: u64, content: String) -> Self {
+    pub fn new(id: u64, owner: Principal, content: String) -> Self {
         Self {
             id,
+            owner,
             content,
             date: time(),
         }
