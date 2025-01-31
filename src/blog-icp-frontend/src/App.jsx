@@ -112,7 +112,7 @@ function App() {
         <p className="">
           Created by{" "}
           <span className="inline-block text-xl text-transparent bg-gradient-to-r from-violet-200 via-violet-400 to-violet-500 bg-clip-text">
-            w64191 w64141 w65136 w65885 w64905
+            w64191 w64141 w65136 w64885 w64905
           </span>{" "}
         </p>
         <img src="/logo2.svg" alt="DFINITY logo" className="w-64" />
