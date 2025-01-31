@@ -107,100 +107,117 @@ function Post({ blogs, getBlogs }) {
 
   return (
     <main className="flex flex-col justify-between h-full py-8">
-      <div>
-      {isEditing ? (
-        <>
-          <h2 className="text-lg font-bold">Edit Post</h2>
+      <div className={`flex flex-col ${isEditing ? "justify-start gap-6" : "justify-between"} h-full`}>
+        {isEditing ? (
+          <>
+            <h2 className="mb-4 text-4xl font-bold">Edit Post</h2>
 
-          <div>
-            <p className="font-bold text-black">Title: </p>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-4 py-1 border-2 border-black outline-none rounded-3xl hover:border-indigo-500"
-            />
-          </div>
-
-          <div>
-            <p className="font-bold text-black">Content: </p>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="w-full rounded-3xl py-1 px-4 outline-none min-h-[100px] border-2 border-black hover:border-indigo-500"
-            />
-          </div>
-
-          <div>
-            <p className="font-bold text-black">Select Tags: </p>
-            <div className="flex flex-wrap gap-2">
-              {availableTags.length > 0 ? (
-                availableTags.map((tag, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    className={`px-4 py-1 text-sm rounded-3xl w-fit ${
-                      selectedTags.includes(tag) ? "bg-indigo-500 text-white" : "bg-gray-300 text-black"
-                    }`}
-                    onClick={() => toggleTag(tag)}
-                  >
-                    {tag}
-                  </button>
-                ))
-              ) : (
-                <p className="text-gray-500">No tags available.</p>
-              )}
+            <div>
+              <p className="font-bold">Title</p>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full px-4 py-1 mt-2 text-black border-2 border-black outline-none hover:border-violet-800"
+              />
             </div>
-          </div>
 
-          <div className="flex gap-4 mt-4">
-            <button onClick={handleSave} className="px-4 py-1 text-white bg-green-500 rounded-3xl hover:scale-110">
-              Save
-            </button>
-            <button onClick={handleCancel} className="px-4 py-1 text-white bg-red-500 rounded-3xl hover:scale-110">
-              Cancel
-            </button>
-          </div>
-        </>
-      ) : (
-        <>
-          <div className="">
-            <div className="mb-1 text-right">{formatDate(blog.date)}</div>
-            <h3 className="font-bold ext-4xl ">{blog.title}</h3>
-            <p className="text-lg">{blog.content}</p>
-            <div className="flex flex-wrap gap-2 mt-2">
+            <div>
+              <p className="font-bold">Content</p>
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                className="w-full px-4 py-1 mt-2 text-black border-2 border-black outline-none hover:border-violet-800"
+              />
+            </div>
+
+            <div>
+              <p className="font-bold ">Select Tags or unselect to remove</p>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {availableTags.length > 0 ? (
+                  availableTags.map((tag, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      className={`px-4 py-1 text-sm font-bold uppercase rounded-lg  ${
+                        selectedTags.includes(tag)
+                          ? "bg-gradient-to-r from-violet-600 to-violet-950 "
+                          : "bg-gray-300 text-black"
+                      }`}
+                      onClick={() => toggleTag(tag)}
+                    >
+                      {tag}
+                    </button>
+                  ))
+                ) : (
+                  <p className="text-gray-500">No tags available.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-4 mt-4">
+              <button
+                onClick={handleSave}
+                className="px-3 py-1 text-lg rounded-lg bg-gradient-to-r from-violet-600 to-violet-950"
+              >
+                Save
+              </button>
+              <button
+                onClick={handleCancel}
+                className="px-3 py-1 text-lg rounded-lg bg-gradient-to-r from-violet-600 to-violet-950"
+              >
+                Cancel
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex flex-col justify-between gap-4">
+              <div className="text-xl font-light text-right">{formatDate(blog.date)}</div>
+              <button
+                onClick={handleEdit}
+                className="self-end px-4 py-1 text-lg rounded-lg bg-gradient-to-r from-violet-800 to-violet-950 w-fit "
+              >
+                Edit Post
+              </button>
+              <div className="flex flex-col gap-8 mt-10">
+                <h3 className="text-4xl font-bold">{blog.title}</h3>
+                <p className="text-lg">{blog.content}</p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-start gap-2 py-8">
+              Tags:
               {blog.tags.map((tag, idx) => (
-                <div key={idx} className="px-4 py-1 text-sm bg-indigo-400">
+                <div
+                  key={idx}
+                  className="px-4 py-1 text-sm font-bold uppercase rounded-lg bg-gradient-to-r from-violet-600 to-violet-950"
+                >
                   {tag}
                 </div>
               ))}
             </div>
-          </div>
-
-          <button onClick={handleEdit} className="px-4 py-1 text-white bg-indigo-500 ">
-            Edit Post
-          </button>
-        </>
-      )}
+          </>
+        )}
       </div>
-      <div>
-        <h4 className="mt-6 text-lg font-bold">Comments</h4>
+      <div className="border-t-[1px] border-violet-800 py-4">
+        <h4 className="mb-4 text-2xl font-bold">Comments</h4>
         {blog.comments && blog.comments.length === 0 ? (
-          <p>No comments yet.</p>
+          <p className="mt-2 text-sm font-light">No comments yet</p>
         ) : (
           blog.comments.map((c, index) => (
-            <div key={index} className="flex items-center justify-between p-2 my-2 border rounded-lg shadow-md">
+            <div key={index} className="flex items-center justify-between py-2 px-4 border-b-[1px] border-gray-500">
               <div>
                 {editingCommentId === c.id ? (
                   <>
                     <textarea
                       value={editingCommentText}
                       onChange={(e) => setEditingCommentText(e.target.value)}
-                      className="w-full rounded-3xl py-1 px-4 outline-none min-h-[50px] border-2 border-black hover:border-indigo-500"
+                      className="w-full py-1 px-4 outline-none min-h-[50px] border-[1px] border-black hover:border-violet-800 text-black"
                     />
                     <button
                       onClick={() => handleSaveComment(c.id)}
-                      className="px-3 py-1 mt-2 text-white bg-green-500 rounded-lg hover:scale-105"
+                      className="px-3 py-1 my-2 rounded-lg bg-gradient-to-r from-violet-600 to-violet-950"
                     >
                       Save
                     </button>
@@ -212,18 +229,18 @@ function Post({ blogs, getBlogs }) {
                   </>
                 )}
               </div>
-              <div className="flex">
+              <div className="flex gap-2">
                 <button
                   onClick={() => handleEditComment(c.id)}
-                  className="px-3 py-1 ml-2 text-white bg-yellow-500 rounded-lg hover:scale-105"
+                  className="px-3 py-1 rounded-lg bg-gradient-to-r from-violet-600 to-violet-950"
                 >
-                  ✏️
+                  Edit
                 </button>
                 <button
                   onClick={() => handleRemoveComment(c.id)}
-                  className="px-3 py-1 ml-2 text-white bg-red-500 rounded-lg hover:scale-105"
+                  className="px-3 py-1 rounded-lg bg-gradient-to-r from-violet-600 to-violet-950"
                 >
-                  ❌
+                  Delete
                 </button>
               </div>
             </div>
@@ -234,19 +251,24 @@ function Post({ blogs, getBlogs }) {
           <textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            placeholder="Add a comment"
-            className="w-full rounded-3xl py-1 px-4 outline-none min-h-[50px] border-2 border-black hover:border-indigo-500"
+            placeholder="Write something nice..."
+            className="w-full py-1 px-2 min-h-[50px] text-black outline-none border-[1px] border-black hover:border-violet-800"
           />
           <button
             onClick={handleAddComment}
-            className="px-4 py-1 mt-2 text-white bg-blue-500 rounded-3xl hover:scale-110"
+            className="px-4 py-1 mt-2 text-lg rounded-lg bg-gradient-to-r from-violet-600 to-violet-950"
           >
             Add Comment
           </button>
         </div>
       </div>
 
-      {message && <div className="mt-4 font-bold text-red-500">{message}</div>}
+      {message && (
+        <div className="mt-4 text-lg font-bold text-violet-400">
+          {message}
+          <div className="hidden">{setTimeout(() => setMessage(""), 3000)}</div>
+        </div>
+      )}
     </main>
   );
 }

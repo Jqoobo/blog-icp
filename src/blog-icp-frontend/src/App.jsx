@@ -96,7 +96,7 @@ function App() {
                 Manage Tags
               </Link>
             </div>
-            <button onClick={logout} className="px-4 py-1 rounded-lg bg-gradient-to-r from-violet-800 to-violet-950">
+            <button onClick={logout} className="px-4 py-1 text-lg rounded-lg bg-gradient-to-r from-violet-800 to-violet-950">
               Logout
             </button>
           </nav>
@@ -108,7 +108,6 @@ function App() {
           <Route path="/manage-tags" element={<ManageTags getTags={getTags} tags={tags} />} />
         </Routes>
       </Router>
-
       <footer className="flex items-center justify-between py-4">
         <p className="">
           Created by{" "}
