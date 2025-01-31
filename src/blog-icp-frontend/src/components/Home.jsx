@@ -11,12 +11,12 @@ function Home({ blogs }) {
             <Link to={`/post/${index}`}>
               <div
                 key={index}
-                className="p-4 border-[1px] border-violet-800 min-h-[170px] flex flex-col justify-between"
+                className="p-4 border-[1px] border-violet-800 min-h-[170px] flex flex-col justify-between backdrop-blur-3xl"
               >
                 <div className="mb-1 text-right">{new Date(Number(blog.date) / 1_000_000).toLocaleString()}</div>
                 <div className="flex flex-col">
                   <h3 className="mb-2 text-3xl font-bold">{blog.title}</h3>
-                  <div className="mb-2 text-sm text-gray-600">By {blog.owner.toText()}</div>
+                  <div className="mb-2 text-sm text-gray-400">By {blog.owner.toText()}</div>
                   <div className="flex items-center justify-between w-full">
                     <div className="flex gap-2 mt-2">
                       {blog.tags.map((tag, idx) => (
