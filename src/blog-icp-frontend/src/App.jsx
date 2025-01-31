@@ -68,8 +68,12 @@ function App() {
 
   if (!identity) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <button onClick={login} className="px-4 py-2 text-white bg-indigo-500 rounded-lg">
+      <div className="flex flex-col items-center justify-center h-screen gap-12">
+        <img src="/icpLogo.svg" alt="Internet Computer Logo" className="w-64 h-auto sm:w-96" />
+        <button
+          onClick={login}
+          className="px-4 py-2 font-normal transform rounded-lg sm:text-xl bg-gradient-to-r from-violet-800 to-violet-950"
+        >
           Log in with Internet Identity
         </button>
       </div>
@@ -77,26 +81,44 @@ function App() {
   }
 
   return (
-    <Router>
-      <nav className="flex justify-between p-4 text-violet-200">
-        <div className="flex gap-4">
-          <Link to="/" className="mr-4">
-            Home
-          </Link>
-          <Link to="/add-post">Add Post</Link>
-          <Link to="/manage-tags">Manage Tags</Link>
-        </div>
-        <button onClick={logout} className="px-4 py-1 text-white bg-red-500 rounded-lg">
-          Disconnect
-        </button>
-      </nav>
-      <Routes>
-        <Route path="/" element={<Home blogs={blogs} />} />
-        <Route path="/add-post" element={<AddPost getBlogs={getBlogs} getTags={getTags} />} />
-        <Route path="/post/:id" element={<Post blogs={blogs} getBlogs={getBlogs} />} />
-        <Route path="/manage-tags" element={<ManageTags getTags={getTags} tags={tags} />} />
-      </Routes>
-    </Router>
+    <>
+      <Router>
+        <header>
+          <nav className="flex items-center justify-between py-8 text-xl border-b-[1px] text-violet-50 border-violet-800">
+            <Link to="/">
+              <img src="/icpLogo.svg" alt="Internet Computer Logo" className="w-48 h-auto" />
+            </Link>
+            <div className="flex gap-10">
+              <Link to="/add-post" className="hover:text-violet-400">
+                Add Post
+              </Link>
+              <Link to="/manage-tags" className="hover:text-violet-400">
+                Manage Tags
+              </Link>
+            </div>
+            <button onClick={logout} className="px-4 py-1 rounded-lg bg-gradient-to-r from-violet-800 to-violet-950">
+              Logout
+            </button>
+          </nav>
+        </header>
+        <Routes>
+          <Route path="/" element={<Home blogs={blogs} />} />
+          <Route path="/add-post" element={<AddPost getBlogs={getBlogs} getTags={getTags} />} />
+          <Route path="/post/:id" element={<Post blogs={blogs} getBlogs={getBlogs} />} />
+          <Route path="/manage-tags" element={<ManageTags getTags={getTags} tags={tags} />} />
+        </Routes>
+      </Router>
+
+      <footer className="flex items-center justify-between py-4">
+        <p className="">
+          Created by{" "}
+          <span className="inline-block text-xl text-transparent bg-gradient-to-r from-violet-200 via-violet-400 to-violet-500 bg-clip-text">
+            w64191 w64141 w65136 w65885 w64905
+          </span>{" "}
+        </p>
+        <img src="/logo2.svg" alt="DFINITY logo" className="w-64" />
+      </footer>
+    </>
   );
 }
 
