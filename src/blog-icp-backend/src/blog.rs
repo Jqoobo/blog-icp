@@ -1,4 +1,4 @@
-use ic_cdk::api::time;
+use crate::get_time;
 use ic_cdk::export::candid::{CandidType, Deserialize};
 use ic_cdk::export::Principal;
 use serde::Serialize;
@@ -28,7 +28,7 @@ impl Comment {
             id,
             owner,
             content,
-            date: time(),
+            date: get_time(),
         }
     }
 }
@@ -39,7 +39,7 @@ impl Blog {
             id,
             owner,
             title,
-            date: time(),
+            date: get_time(),
             content,
             tags,
             comments: Vec::new(),
