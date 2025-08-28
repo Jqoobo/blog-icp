@@ -12,7 +12,7 @@ function AddPost({ getBlogs, getTags }) {
 
   const navigate = useNavigate();
 
-  const CANISTER_URL = "https://aihxp-bqaaa-aaaah-ariyq-cai.icp0.io";
+  const CANISTER_URL = "https://aihxp-bqaaa-aaaah-ariyq-cai.icp0.io/api";
 
   useEffect(() => {
     fetchTags();
