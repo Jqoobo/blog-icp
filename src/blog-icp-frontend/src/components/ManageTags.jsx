@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { blog_icp_backend } from "../../../declarations/blog-icp-backend";
+import api from "../../api";
 
 function ManageTags({ getTags }) {
   const [tags, setTags] = useState([]);
@@ -11,32 +11,31 @@ function ManageTags({ getTags }) {
   }, []);
 
   async function fetchTags() {
-    const config = await blog_icp_backend.get_config();
-    setTags(config.tags);
+    const res = await api.get("/tags");
+    setTags(res.data);
   }
 
   async function handleAddTag() {
     if (newTag.trim() === "") return;
-
-    const result = await blog_icp_backend.add_tag_to_config(newTag);
-    if ("Ok" in result) {
+    try {
+      await api.post("/tags", { tag: newTag });
       setMessage("Tag added successfully!");
       setNewTag("");
       fetchTags();
       getTags();
-    } else {
-      setMessage(`Error: ${result.Err}`);
+    } catch (err) {
+      setMessage("Błąd dodawania tagu");
     }
   }
 
   async function handleRemoveTag(tag) {
-    const result = await blog_icp_backend.remove_tag_from_config(tag);
-    if ("Ok" in result) {
+    try {
+      await api.delete(`/tags/${tag}`);
       setMessage(`Tag "${tag}" removed successfully!`);
       fetchTags();
       getTags();
-    } else {
-      setMessage(`Error: ${result.Err}`);
+    } catch (err) {
+      setMessage("Błąd usuwania tagu");
     }
   }
 

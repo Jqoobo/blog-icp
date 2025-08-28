@@ -6,6 +6,7 @@ import AddPost from "./components/AddPost";
 import Post from "./components/Post";
 import ManageTags from "./components/ManageTags";
 import { HashRouter as Router, Routes, Route, Link } from "react-router-dom";
+import api from "../api";
 
 function App() {
   const [authClient, setAuthClient] = useState(null);
@@ -34,18 +35,13 @@ function App() {
   }, []);
 
   async function getBlogs() {
-    const tempBlogs = await blog_icp_backend.get_blogs();
-    setBlogs(
-      tempBlogs.map((blog) => ({
-        ...blog,
-        date: blog.date.toString(),
-      }))
-    );
+    const res = await api.get("/posts");
+    setBlogs(res.data);
   }
 
   async function getTags() {
-    const config = await blog_icp_backend.get_config();
-    setTags(config.tags);
+    const res = await api.get("/tags");
+    setTags(res.data);
   }
 
   async function login() {
@@ -96,7 +92,10 @@ function App() {
                 Manage Tags
               </Link>
             </div>
-            <button onClick={logout} className="px-4 py-1 text-lg rounded-lg bg-gradient-to-r from-violet-800 to-violet-950">
+            <button
+              onClick={logout}
+              className="px-4 py-1 text-lg rounded-lg bg-gradient-to-r from-violet-800 to-violet-950"
+            >
               Logout
             </button>
           </nav>

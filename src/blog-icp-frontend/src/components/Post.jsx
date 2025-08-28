@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useParams } from "react-router-dom";
-import { blog_icp_backend } from "../../../declarations/blog-icp-backend";
+import api from "../../api";
 
 function Post({ blogs, getBlogs }) {
   const { id } = useParams();
@@ -18,8 +18,8 @@ function Post({ blogs, getBlogs }) {
   const [editingCommentText, setEditingCommentText] = useState("");
 
   async function fetchTags() {
-    const config = await blog_icp_backend.get_config();
-    setAvailableTags(config.tags);
+    const res = await api.get("/tags");
+    setAvailableTags(res.data);
   }
 
   async function handleEdit() {
@@ -35,24 +35,29 @@ function Post({ blogs, getBlogs }) {
   }
 
   async function handleSave() {
-    const newTags = selectedTags.length === 0 ? [] : selectedTags;
-
-    const result = await blog_icp_backend.edit_blog(blog.id, [title], [content], [newTags]);
-
-    if ("Ok" in result) {
+    try {
+      await api.put(`/posts/${blog.id}`, {
+        title,
+        content,
+        tags: selectedTags,
+      });
       setMessage("Post updated successfully!");
       setIsEditing(false);
       getBlogs();
-    } else {
-      setMessage(`Error: ${result.Err}`);
+    } catch (err) {
+      setMessage("Błąd edycji posta");
     }
   }
 
   async function handleAddComment() {
     if (comment.trim() === "") return;
-    await blog_icp_backend.add_comment(blog.id, comment);
-    setComment("");
-    getBlogs();
+    try {
+      await api.post(`/posts/${blog.id}/comments`, { content: comment });
+      setComment("");
+      getBlogs();
+    } catch (err) {
+      setMessage("Błąd dodawania komentarza");
+    }
   }
 
   async function handleEditComment(commentId) {
@@ -65,23 +70,22 @@ function Post({ blogs, getBlogs }) {
 
   async function handleSaveComment(commentId) {
     if (editingCommentText.trim() === "") return;
-
-    const result = await blog_icp_backend.edit_comment(blog.id, commentId, editingCommentText);
-    if ("Ok" in result) {
+    try {
+      await api.put(`/posts/${blog.id}/comments/${commentId}`, { content: editingCommentText });
       setEditingCommentId(null);
       setEditingCommentText("");
       getBlogs();
-    } else {
-      setMessage(`Error: ${result.Err}`);
+    } catch (err) {
+      setMessage("Błąd edycji komentarza");
     }
   }
 
   async function handleRemoveComment(commentId) {
-    const result = await blog_icp_backend.remove_comment(blog.id, commentId);
-    if ("Ok" in result) {
+    try {
+      await api.delete(`/posts/${blog.id}/comments/${commentId}`);
       getBlogs();
-    } else {
-      setMessage(`Error: ${result.Err}`);
+    } catch (err) {
+      setMessage("Błąd usuwania komentarza");
     }
   }
 

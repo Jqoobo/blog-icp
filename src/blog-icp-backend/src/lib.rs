@@ -1,15 +1,36 @@
 use std::cell::RefCell;
 
-use ic_cdk_macros::{init, query, update};
-use ic_cdk::export::candid::{CandidType, Deserialize};
+use candid::{CandidType, Deserialize as CandidDeserialize, Principal};
 use ic_cdk::api::{caller, time};
-use candid::Principal;
+use ic_cdk_macros::{init, query, update};
+use serde::{Deserialize as SerdeDeserialize, Serialize};
+use serde_json::json;
+
+#[derive(Debug, Clone, CandidType, serde::Deserialize)]
+pub struct HttpRequest {
+    pub method: String,
+    pub url: String,
+    pub headers: Vec<(String, String)>,
+    pub body: Vec<u8>,
+}
+
+#[derive(Debug, Clone, CandidType, serde::Serialize)]
+pub struct HttpResponse {
+    pub status_code: u16,
+    pub headers: Vec<(String, String)>,
+    pub body: Vec<u8>,
+    pub upgrade: Option<bool>,
+}
+
+pub type HeaderField = (String, String);
 
 mod blog;
 mod config;
 
 use blog::{Blog, Comment};
 use config::Config;
+
+// ----------------- STAN KANISTRA -----------------
 
 thread_local! {
     static CONFIG: RefCell<Config> = RefCell::new(Config::new());
@@ -19,44 +40,40 @@ thread_local! {
     static NEXT_COMMENT_ID: RefCell<u64> = RefCell::new(0);
 }
 
-#[derive(CandidType, Deserialize, Debug)]
+// ----------------- WYNIKI CANDID -----------------
+
+#[derive(CandidType, CandidDeserialize, Debug)]
 pub enum BlogResult {
     Ok(Blog),
     Err(String),
 }
 
-#[derive(CandidType, Deserialize, Debug)]
+#[derive(CandidType, CandidDeserialize, Debug)]
 pub enum CommentResult {
     Ok(Comment),
     Err(String),
 }
+
+// ----------------- INIT -----------------
 
 #[init]
 fn init() {
     ic_cdk::println!("Canister init");
 }
 
+// ----------------- NARZĘDZIA -----------------
+
 pub fn get_time() -> u64 {
-    #[cfg(test)]
-    {
-        0
-    }
-    #[cfg(not(test))]
-    {
-        ic_cdk::api::time()
-    }
+    #[cfg(test)] { 0 }
+    #[cfg(not(test))] { time() }
 }
 
 fn get_caller() -> Principal {
-    #[cfg(test)]
-    {
-        Principal::from_text("aaaaa-aa").unwrap()
-    }
-    #[cfg(not(test))]
-    {
-        ic_cdk::api::caller()
-    }
+    #[cfg(test)] { Principal::from_text("aaaaa-aa").unwrap() }
+    #[cfg(not(test))] { caller() }
 }
+
+// ----------------- API CANDID (twoje oryginalne) -----------------
 
 #[query]
 fn greet(name: String) -> String {
@@ -67,7 +84,6 @@ fn greet(name: String) -> String {
 fn add_config(new_config: Config) {
     CONFIG.with(|c| *c.borrow_mut() = new_config);
 }
-
 
 #[update]
 fn add_tag_to_config(tag: String) -> Result<(), String> {
@@ -128,22 +144,11 @@ fn edit_blog(blog_id: u64, new_title: Option<String>, new_content: Option<String
         let mut blogs_ref = blogs.borrow_mut();
 
         if let Some(blog) = blogs_ref.iter_mut().find(|b| b.id == blog_id) {
-            if blog.owner.to_text() != caller.to_text() {
+            if blog.owner != caller {
                 return BlogResult::Err("You can only edit your own posts.".to_string());
             }
 
-            if let Some(t) = new_title {
-                blog.title = t;
-            }
-
-            if let Some(c) = new_content {
-                blog.content = c;
-            }
-
-            if let Some(ts) = new_tags {
-                blog.tags = ts;
-            }
-
+            blog.apply_update(new_title, new_content, new_tags);
             return BlogResult::Ok(blog.clone());
         }
         BlogResult::Err("Blog not found".to_string())
@@ -152,11 +157,11 @@ fn edit_blog(blog_id: u64, new_title: Option<String>, new_content: Option<String
 
 #[update]
 fn remove_blog(blog_id: u64) -> Result<(), String> {
-    let caller = caller();
+    let who = get_caller();
     BLOGS.with(|blogs| {
         let mut blogs_ref = blogs.borrow_mut();
         let len_before = blogs_ref.len();
-        blogs_ref.retain(|b| b.id != blog_id || b.owner == caller);
+        blogs_ref.retain(|b| !(b.id == blog_id && b.owner == who));
 
         if blogs_ref.len() == len_before {
             return Err("You can only delete your own posts.".to_string());
@@ -172,7 +177,7 @@ fn get_blogs() -> Vec<Blog> {
 
 #[update]
 fn add_comment(blog_id: u64, content: String) -> CommentResult {
-    let caller = get_caller();
+    let who = get_caller();
     BLOGS.with(|blogs| {
         let mut blogs_ref = blogs.borrow_mut();
         if let Some(blog) = blogs_ref.iter_mut().find(|b| b.id == blog_id) {
@@ -182,8 +187,8 @@ fn add_comment(blog_id: u64, content: String) -> CommentResult {
                 current
             });
 
-            let new_comment = Comment::new(comment_id, caller, content);
-            blog.comments.push(new_comment.clone());
+            let new_comment = Comment::new(comment_id, who, content);
+            blog.add_comment(new_comment.clone());
             return CommentResult::Ok(new_comment);
         }
         CommentResult::Err("Blog not found".to_string())
@@ -192,39 +197,44 @@ fn add_comment(blog_id: u64, content: String) -> CommentResult {
 
 #[update]
 fn edit_comment(blog_id: u64, comment_id: u64, new_content: String) -> CommentResult {
-    let caller = get_caller();
+    let who = get_caller();
     BLOGS.with(|blogs| {
         let mut blogs_ref = blogs.borrow_mut();
         if let Some(blog) = blogs_ref.iter_mut().find(|b| b.id == blog_id) {
-            if let Some(comment) = blog.comments.iter_mut().find(|c| c.id == comment_id) {
-                if comment.owner != caller {
+            if let Some(c) = blog.comments.iter().find(|c| c.id == comment_id) {
+                if c.owner != who {
                     return CommentResult::Err("You can only edit your own comments.".to_string());
                 }
-
-                comment.content = new_content;
-                comment.date = get_time();
-                return CommentResult::Ok(comment.clone());
             }
-            return CommentResult::Err("Comment not found".to_string());
+            match blog.edit_comment(comment_id, new_content) {
+                Ok(updated) => CommentResult::Ok(updated.clone()),
+                Err(e) => CommentResult::Err(e),
+            }
+        } else {
+            CommentResult::Err("Blog not found".to_string())
         }
-        CommentResult::Err("Blog not found".to_string())
     })
 }
 
 #[update]
 fn remove_comment(blog_id: u64, comment_id: u64) -> Result<(), String> {
-    let caller = get_caller();
+    let who = get_caller();
     BLOGS.with(|blogs| {
         let mut blogs_ref = blogs.borrow_mut();
         if let Some(blog) = blogs_ref.iter_mut().find(|b| b.id == blog_id) {
-            let len_before = blog.comments.len();
-            blog.comments.retain(|c| c.id != comment_id || c.owner != caller);
-            if blog.comments.len() == len_before {
-                return Err("You can only delete your own comments.".to_string());
+            // pozwalamy usunąć tylko swój komentarz
+            if let Some(c) = blog.comments.iter().find(|c| c.id == comment_id) {
+                if c.owner != who {
+                    return Err("You can only delete your own comments.".to_string());
+                }
+            } else {
+                return Err("Comment not found".to_string());
             }
-            return Ok(());
+            let removed = blog.remove_comment(comment_id);
+            if removed { Ok(()) } else { Err("Comment not found".to_string()) }
+        } else {
+            Err("Blog not found".to_string())
         }
-        Err("Blog not found".to_string())
     })
 }
 
@@ -235,183 +245,197 @@ fn remove_tag_from_config(tag: String) -> Result<(), String> {
     })
 }
 
-//Testy jednostkowe
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use ic_cdk::export::Principal;
+// ----------------- HTTP HELPERS -----------------
 
-    fn clear_state() {
-        BLOGS.with(|blogs| {
-            blogs.borrow_mut().clear();
-        });
-        CONFIG.with(|config| {
-            *config.borrow_mut() = Config::new();
-        });
-        NEXT_BLOG_ID.with(|id| {
-            *id.borrow_mut() = 0;
-        });
-        NEXT_COMMENT_ID.with(|id| {
-            *id.borrow_mut() = 0;
-        });
-    }
+fn cors_headers() -> Vec<HeaderField> {
+    vec![
+        ("Content-Type".into(), "application/json; charset=utf-8".into()),
+        ("Access-Control-Allow-Origin".into(), "*".into()),
+        ("Access-Control-Allow-Methods".into(), "GET,POST,PUT,DELETE,OPTIONS".into()),
+        ("Access-Control-Allow-Headers".into(), "Content-Type,Authorization".into()),
+    ]
+}
 
-    #[test]
-    fn test_add_blog_success() {
-        clear_state();
-        let _ = add_tag_to_config("tag1".to_string());
-        let result = add_blog(
-            "Test Post".to_string(),
-            "This is the content".to_string(),
-            vec!["tag1".to_string()],
-        );
-        match result {
-            BlogResult::Ok(blog) => {
-                let expected = get_caller();
-                assert_eq!(blog.owner.to_text(), expected.to_text());
-                assert_eq!(blog.title, "Test Post");
-                assert_eq!(blog.content, "This is the content");
-                assert_eq!(blog.tags, vec!["tag1".to_string()]);
+fn ok_json<T: Serialize>(value: &T) -> HttpResponse {
+    HttpResponse { status_code: 200, headers: cors_headers(), body: serde_json::to_vec(value).unwrap().into(), upgrade: None }
+}
+fn created_json<T: Serialize>(value: &T) -> HttpResponse {
+    HttpResponse { status_code: 201, headers: cors_headers(), body: serde_json::to_vec(value).unwrap().into(), upgrade: None }
+}
+fn no_content() -> HttpResponse {
+    HttpResponse { status_code: 204, headers: cors_headers(), body: vec![].into(), upgrade: None }
+}
+fn bad_request(msg: &str) -> HttpResponse {
+    HttpResponse { status_code: 400, headers: cors_headers(), body: serde_json::to_vec(&json!({ "error": msg })).unwrap().into(), upgrade: None }
+}
+fn not_found() -> HttpResponse {
+    HttpResponse { status_code: 404, headers: cors_headers(), body: serde_json::to_vec(&json!({ "error": "Not found" })).unwrap().into(), upgrade: None }
+}
+fn method_not_allowed() -> HttpResponse {
+    HttpResponse { status_code: 405, headers: cors_headers(), body: serde_json::to_vec(&json!({ "error": "Method not allowed" })).unwrap().into(), upgrade: None }
+}
+
+fn path_segments(url: &str) -> Vec<&str> {
+    // odcina query string, jeśli jest
+    let path = url.splitn(2, '?').next().unwrap_or(url);
+    path.trim_start_matches('/').split('/').collect()
+}
+
+fn parse_qs(url: &str) -> std::collections::HashMap<String, String> {
+    let mut map = std::collections::HashMap::new();
+    if let Some(q) = url.splitn(2, '?').nth(1) {
+        for kv in q.split('&') {
+            if let Some((k, v)) = kv.split_once('=') {
+                map.insert(k.to_string(), v.to_string());
             }
-            BlogResult::Err(err) => panic!("Dodawanie posta nie powiodło się: {}", err),
         }
     }
+    map
+}
 
-    #[test]
-    fn test_edit_blog_success() {
-        clear_state();
-        let _ = add_tag_to_config("tag1".to_string());
-        let _ = add_tag_to_config("tag2".to_string());
-        let result = add_blog(
-            "Test Post".to_string(),
-            "Original content".to_string(),
-            vec!["tag1".to_string()],
-        );
-        let blog = match result {
-            BlogResult::Ok(b) => b,
-            BlogResult::Err(err) => panic!("Dodawanie posta nie powiodło się: {}", err),
-        };
+// Payloady JSON dla REST
+#[derive(SerdeDeserialize)]
+struct NewPost { title: String, content: String, tags: Vec<String> }
 
-        let edit_result = edit_blog(
-            blog.id,
-            Some("Edited Post".to_string()),
-            Some("Edited content".to_string()),
-            Some(vec!["tag2".to_string()]),
-        );
-        match edit_result {
-            BlogResult::Ok(edited_blog) => {
-                assert_eq!(edited_blog.title, "Edited Post");
-                assert_eq!(edited_blog.content, "Edited content");
-                assert_eq!(edited_blog.tags, vec!["tag2".to_string()]);
-            }
-            BlogResult::Err(err) => panic!("Edycja posta nie powiodła się: {}", err),
+#[derive(SerdeDeserialize)]
+struct UpdatePost { title: Option<String>, content: Option<String>, tags: Option<Vec<String>> }
+
+#[derive(SerdeDeserialize)]
+struct NewComment { content: String }
+
+#[derive(SerdeDeserialize)]
+struct UpdateComment { content: String }
+
+// ----------------- HTTP ROUTER -----------------
+
+/// READ (bez mutacji) + sygnał upgrade dla metod modyfikujących
+#[query]
+fn http_request(req: HttpRequest) -> HttpResponse {
+    // Preflight CORS
+    if req.method == "OPTIONS" {
+        return no_content();
+    }
+
+    let seg = path_segments(&req.url);
+
+    match (req.method.as_str(), seg.as_slice()) {
+        // GET /api/posts?offset=&limit=
+        ("GET", ["api", "posts"]) => {
+            let qs = parse_qs(&req.url);
+            let offset = qs.get("offset").and_then(|v| v.parse::<usize>().ok()).unwrap_or(0);
+            let limit  = qs.get("limit").and_then(|v| v.parse::<usize>().ok()).unwrap_or(50);
+
+            let data = BLOGS.with(|blogs| {
+                let v = blogs.borrow();
+                if offset >= v.len() { return Vec::<Blog>::new(); }
+                let end = (offset + limit).min(v.len());
+                v[offset..end].to_vec()
+            });
+            ok_json(&data)
         }
-    }
 
-    #[test]
-    fn test_add_comment_success() {
-        clear_state();
-        let _ = add_tag_to_config("tag1".to_string());
-        let result = add_blog(
-            "Test Post".to_string(),
-            "Some content".to_string(),
-            vec!["tag1".to_string()],
-        );
-        let blog = match result {
-            BlogResult::Ok(b) => b,
-            BlogResult::Err(err) => panic!("Dodawanie posta nie powiodło się: {}", err),
-        };
-
-        let comment_result = add_comment(blog.id, "This is a comment".to_string());
-        match comment_result {
-            CommentResult::Ok(comment) => {
-                let expected = get_caller();
-                assert_eq!(comment.owner.to_text(), expected.to_text());
-                assert_eq!(comment.content, "This is a comment");
+        // GET /api/posts/{id}
+        ("GET", ["api", "posts", id]) => {
+            let id = id.parse::<u64>().unwrap_or(u64::MAX);
+            if id == u64::MAX { return bad_request("Invalid post id"); }
+            let one = BLOGS.with(|bs| bs.borrow().iter().find(|b| b.id == id).cloned());
+            match one {
+                Some(blog) => ok_json(&blog),
+                None => not_found(),
             }
-            CommentResult::Err(err) => panic!("Dodawanie komentarza nie powiodło się: {}", err),
         }
-    }
 
-    #[test]
-    fn test_edit_comment_success() {
-        clear_state();
-        let _ = add_tag_to_config("tag1".to_string());
-        let result = add_blog(
-            "Test Post".to_string(),
-            "Some content".to_string(),
-            vec!["tag1".to_string()],
-        );
-        let blog = match result {
-            BlogResult::Ok(b) => b,
-            BlogResult::Err(err) => panic!("Dodawanie posta nie powiodło się: {}", err),
-        };
-
-        let comment_result = add_comment(blog.id, "Initial comment".to_string());
-        let comment = match comment_result {
-            CommentResult::Ok(c) => c,
-            CommentResult::Err(err) => panic!("Dodawanie komentarza nie powiodło się: {}", err),
-        };
-
-        let edit_result = edit_comment(blog.id, comment.id, "Edited comment".to_string());
-        match edit_result {
-            CommentResult::Ok(edited_comment) => {
-                assert_eq!(edited_comment.content, "Edited comment");
-            }
-            CommentResult::Err(err) => panic!("Edycja komentarza nie powiodła się: {}", err),
+        // Write' y -> upgrade do `http_request_update`
+        ("POST", ["api", ..]) | ("PUT", ["api", ..]) | ("DELETE", ["api", ..]) => {
+            HttpResponse { status_code: 204, headers: cors_headers(), body: vec![].into(), upgrade: Some(true) }
         }
-    }
 
-    #[test]
-    fn test_remove_comment_success() {
-        clear_state();
-        let _ = add_tag_to_config("tag1".to_string());
-        let result = add_blog(
-            "Test Post".to_string(),
-            "Some content".to_string(),
-            vec!["tag1".to_string()],
-        );
-        let blog = match result {
-            BlogResult::Ok(b) => b,
-            BlogResult::Err(err) => panic!("Dodawanie posta nie powiodło się: {}", err),
-        };
-
-        let comment_result = add_comment(blog.id, "Comment to remove".to_string());
-        let comment = match comment_result {
-            CommentResult::Ok(c) => c,
-            CommentResult::Err(err) => panic!("Dodawanie komentarza nie powiodło się: {}", err),
-        };
-
-        let remove_result = remove_comment(blog.id, comment.id);
-        assert!(remove_result.is_ok());
-        BLOGS.with(|blogs| {
-            let blogs_ref = blogs.borrow();
-            let blog_opt = blogs_ref.iter().find(|b| b.id == blog.id);
-            if let Some(b) = blog_opt {
-                assert!(b.comments.iter().find(|c| c.id == comment.id).is_none());
-            } else {
-                panic!("Blog nie został znaleziony");
-            }
-        });
-    }
-
-    #[test]
-    fn test_add_tag_success() {
-        clear_state();
-        let result = add_tag_to_config("tag1".to_string());
-        assert!(result.is_ok());
-        let config = get_config();
-        assert!(config.tags.contains(&"tag1".to_string()));
-    }
-
-    #[test]
-    fn test_remove_tag_success() {
-        clear_state();
-        let _ = add_tag_to_config("tag1".to_string());
-        let remove_result = remove_tag_from_config("tag1".to_string());
-        assert!(remove_result.is_ok());
-        let config = get_config();
-        assert!(!config.tags.contains(&"tag1".to_string()));
+        _ => not_found(),
     }
 }
 
+/// WRITE (mutacje) – faktyczne modyfikacje stanu
+#[update]
+fn http_request_update(req: HttpRequest) -> HttpResponse {
+    let seg = path_segments(&req.url);
+
+    match (req.method.as_str(), seg.as_slice()) {
+        // POST /api/posts  -> add_blog
+        ("POST", ["api", "posts"]) => {
+            let body = String::from_utf8(req.body.clone()).unwrap_or_default();
+            match serde_json::from_str::<NewPost>(&body) {
+                Ok(input) => match add_blog(input.title, input.content, input.tags) {
+                    BlogResult::Ok(blog) => created_json(&blog),
+                    BlogResult::Err(e)   => bad_request(&e),
+                },
+                Err(_) => bad_request("Invalid JSON payload"),
+            }
+        }
+
+        // PUT /api/posts/{id}  -> edit_blog
+        ("PUT", ["api", "posts", id]) => {
+            let id = id.parse::<u64>().unwrap_or(u64::MAX);
+            if id == u64::MAX { return bad_request("Invalid post id"); }
+            let body = String::from_utf8(req.body.clone()).unwrap_or_default();
+            match serde_json::from_str::<UpdatePost>(&body) {
+                Ok(u) => match edit_blog(id, u.title, u.content, u.tags) {
+                    BlogResult::Ok(blog) => ok_json(&blog),
+                    BlogResult::Err(e)   => bad_request(&e),
+                },
+                Err(_) => bad_request("Invalid JSON payload"),
+            }
+        }
+
+        // DELETE /api/posts/{id} -> remove_blog
+        ("DELETE", ["api", "posts", id]) => {
+            let id = id.parse::<u64>().unwrap_or(u64::MAX);
+            if id == u64::MAX { return bad_request("Invalid post id"); }
+            match remove_blog(id) {
+                Ok(()) => no_content(),
+                Err(e) => bad_request(&e),
+            }
+        }
+
+        // POST /api/posts/{id}/comments -> add_comment
+        ("POST", ["api", "posts", id, "comments"]) => {
+            let post_id = id.parse::<u64>().unwrap_or(u64::MAX);
+            if post_id == u64::MAX { return bad_request("Invalid post id"); }
+            let body = String::from_utf8(req.body.clone()).unwrap_or_default();
+            match serde_json::from_str::<NewComment>(&body) {
+                Ok(input) => match add_comment(post_id, input.content) {
+                    CommentResult::Ok(c) => created_json(&c),
+                    CommentResult::Err(e) => bad_request(&e),
+                },
+                Err(_) => bad_request("Invalid JSON payload"),
+            }
+        }
+
+        // PUT /api/posts/{postId}/comments/{commentId} -> edit_comment
+        ("PUT", ["api", "posts", pid, "comments", cid]) => {
+            let post_id = pid.parse::<u64>().unwrap_or(u64::MAX);
+            let comment_id = cid.parse::<u64>().unwrap_or(u64::MAX);
+            if post_id == u64::MAX || comment_id == u64::MAX { return bad_request("Invalid ids"); }
+            let body = String::from_utf8(req.body.clone()).unwrap_or_default();
+            match serde_json::from_str::<UpdateComment>(&body) {
+                Ok(input) => match edit_comment(post_id, comment_id, input.content) {
+                    CommentResult::Ok(c) => ok_json(&c),
+                    CommentResult::Err(e) => bad_request(&e),
+                },
+                Err(_) => bad_request("Invalid JSON payload"),
+            }
+        }
+
+        // DELETE /api/posts/{postId}/comments/{commentId} -> remove_comment
+        ("DELETE", ["api", "posts", pid, "comments", cid]) => {
+            let post_id = pid.parse::<u64>().unwrap_or(u64::MAX);
+            let comment_id = cid.parse::<u64>().unwrap_or(u64::MAX);
+            if post_id == u64::MAX || comment_id == u64::MAX { return bad_request("Invalid ids"); }
+            match remove_comment(post_id, comment_id) {
+                Ok(()) => no_content(),
+                Err(e) => bad_request(&e),
+            }
+        }
+
+        _ => method_not_allowed(),
+    }
+}

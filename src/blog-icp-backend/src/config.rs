@@ -1,6 +1,6 @@
-use candid::{CandidType, Deserialize};
+use candid::{CandidType, Deserialize as CandidDeserialize};
 
-#[derive(Clone, CandidType, Deserialize, Debug)]
+#[derive(Clone, CandidType, CandidDeserialize, Debug, PartialEq, Eq)]
 pub struct Config {
     pub max_tags_count: u8,
     pub max_content_len: u16,
@@ -9,6 +9,7 @@ pub struct Config {
 }
 
 impl Config {
+    /// Wartości domyślne konfiguracji.
     pub fn new() -> Self {
         Self {
             max_tags_count: 3,
@@ -17,7 +18,6 @@ impl Config {
             tags: Vec::new(),
         }
     }
-
     pub fn remove_tag(&mut self, tag: &str) -> Result<(), String> {
         let tag_string = tag.to_string();
         if !self.tags.contains(&tag_string) {

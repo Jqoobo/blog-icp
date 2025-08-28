@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { blog_icp_backend } from "../../../declarations/blog-icp-backend";
+import api from "../../api";
 
 function AddPost({ getBlogs, getTags }) {
   const [title, setTitle] = useState("");
@@ -17,8 +17,8 @@ function AddPost({ getBlogs, getTags }) {
   }, []);
 
   async function fetchTags() {
-    const config = await blog_icp_backend.get_config();
-    setAvailableTags(config.tags);
+    const res = await api.get("/tags");
+    setAvailableTags(res.data);
   }
 
   async function handleSubmit(e) {
@@ -27,31 +27,33 @@ function AddPost({ getBlogs, getTags }) {
       setMessage("Title and content cannot be empty!");
       return;
     }
-
-    const result = await blog_icp_backend.add_blog(title, content, selectedTags);
-    if ("Ok" in result) {
+    try {
+      await api.post("/posts", {
+        title,
+        content,
+        tags: selectedTags,
+      });
       setMessage("Post added successfully!");
       setTitle("");
       setContent("");
       setSelectedTags([]);
       getBlogs();
       navigate("/");
-    } else {
-      setMessage(`Error: ${result.Err}`);
+    } catch (err) {
+      setMessage("Błąd dodawania posta");
     }
   }
 
   async function handleAddTag() {
     if (newTag.trim() === "") return;
-
-    const result = await blog_icp_backend.add_tag_to_config(newTag);
-    if ("Ok" in result) {
+    try {
+      await api.post("/tags", { tag: newTag });
       setMessage("Tag added successfully!");
       setNewTag("");
       fetchTags();
       getTags();
-    } else {
-      setMessage(`Error: ${result.Err}`);
+    } catch (err) {
+      setMessage("Błąd dodawania tagu");
     }
   }
 
