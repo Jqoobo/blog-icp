@@ -8,7 +8,7 @@ import ManageTags from "./components/ManageTags";
 import { HashRouter as Router, Routes, Route, Link } from "react-router-dom";
 import axios from "axios";
 
-const CANISTER_URL = "https://aihxp-bqaaa-aaaah-ariyq-cai.icp0.io";
+const CANISTER_URL = "https://aihxp-bqaaa-aaaah-ariyq-cai.icp0.io/api";
 
 function App() {
   const [authClient, setAuthClient] = useState(null);

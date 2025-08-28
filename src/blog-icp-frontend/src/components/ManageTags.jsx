@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
-const CANISTER_URL = "https://aihxp-bqaaa-aaaah-ariyq-cai.icp0.io";
+const CANISTER_URL = "https://aihxp-bqaaa-aaaah-ariyq-cai.icp0.io/api";
 
 function ManageTags({ getTags }) {
   const [tags, setTags] = useState([]);

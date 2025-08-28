@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 
-const CANISTER_URL = "https://aihxp-bqaaa-aaaah-ariyq-cai.icp0.io";
+const CANISTER_URL = "https://aihxp-bqaaa-aaaah-ariyq-cai.icp0.io/api";
 
 function Post({ blogs, getBlogs }) {
   const { id } = useParams();
