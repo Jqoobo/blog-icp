@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
-import api from "../../api";
+import axios from "axios";
+
+const CANISTER_URL = "https://aihxp-bqaaa-aaaah-ariyq-cai.icp0.io";
 
 function ManageTags({ getTags }) {
   const [tags, setTags] = useState([]);
@@ -11,14 +13,14 @@ function ManageTags({ getTags }) {
   }, []);
 
   async function fetchTags() {
-    const res = await api.get("/tags");
+    const res = await axios.get(`${CANISTER_URL}/tags`);
     setTags(res.data);
   }
 
   async function handleAddTag() {
     if (newTag.trim() === "") return;
     try {
-      await api.post("/tags", { tag: newTag });
+      await axios.post(`${CANISTER_URL}/tags`, { tag: newTag });
       setMessage("Tag added successfully!");
       setNewTag("");
       fetchTags();
@@ -30,7 +32,7 @@ function ManageTags({ getTags }) {
 
   async function handleRemoveTag(tag) {
     try {
-      await api.delete(`/tags/${tag}`);
+      await axios.delete(`${CANISTER_URL}/tags/${tag}`);
       setMessage(`Tag "${tag}" removed successfully!`);
       fetchTags();
       getTags();

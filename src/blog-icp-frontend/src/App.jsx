@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { createActor, blog_icp_backend, canisterId } from "../../declarations/blog-icp-backend";
+import { createActor, canisterId } from "../../declarations/blog-icp-backend";
 import { AuthClient } from "@dfinity/auth-client";
 import Home from "./components/Home";
 import AddPost from "./components/AddPost";
 import Post from "./components/Post";
 import ManageTags from "./components/ManageTags";
 import { HashRouter as Router, Routes, Route, Link } from "react-router-dom";
-import api from "../api";
+import axios from "axios";
+
+const CANISTER_URL = "https://aihxp-bqaaa-aaaah-ariyq-cai.icp0.io";
 
 function App() {
   const [authClient, setAuthClient] = useState(null);
@@ -35,12 +37,12 @@ function App() {
   }, []);
 
   async function getBlogs() {
-    const res = await api.get("/posts");
+    const res = await axios.get(`${CANISTER_URL}/posts`);
     setBlogs(res.data);
   }
 
   async function getTags() {
-    const res = await api.get("/tags");
+    const res = await axios.get(`${CANISTER_URL}/tags`);
     setTags(res.data);
   }
 

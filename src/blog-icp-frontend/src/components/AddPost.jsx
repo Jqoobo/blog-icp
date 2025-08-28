@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../../api";
+import axios from "axios";
 
 function AddPost({ getBlogs, getTags }) {
   const [title, setTitle] = useState("");
@@ -12,13 +12,15 @@ function AddPost({ getBlogs, getTags }) {
 
   const navigate = useNavigate();
 
+  const CANISTER_URL = "https://aihxp-bqaaa-aaaah-ariyq-cai.icp0.io";
+
   useEffect(() => {
     fetchTags();
   }, []);
 
   async function fetchTags() {
-    const res = await api.get("/tags");
-    setAvailableTags(res.data);
+    const res = await axios.get(`${CANISTER_URL}/tags`);
+    setAvailableTags(Array.isArray(res.data) ? res.data : []);
   }
 
   async function handleSubmit(e) {
@@ -28,7 +30,7 @@ function AddPost({ getBlogs, getTags }) {
       return;
     }
     try {
-      await api.post("/posts", {
+      await axios.post(`${CANISTER_URL}/posts`, {
         title,
         content,
         tags: selectedTags,
@@ -47,7 +49,7 @@ function AddPost({ getBlogs, getTags }) {
   async function handleAddTag() {
     if (newTag.trim() === "") return;
     try {
-      await api.post("/tags", { tag: newTag });
+      await api.post(`/tags`, { tag: newTag });
       setMessage("Tag added successfully!");
       setNewTag("");
       fetchTags();
@@ -105,7 +107,7 @@ function AddPost({ getBlogs, getTags }) {
         <div>
           <p className="font-bold">Select existing tags</p>
           <div className="flex flex-wrap gap-2 mt-2">
-            {availableTags.map((tag, index) => (
+            {(Array.isArray(availableTags) ? availableTags : []).map((tag, index) => (
               <button
                 key={index}
                 type="button"

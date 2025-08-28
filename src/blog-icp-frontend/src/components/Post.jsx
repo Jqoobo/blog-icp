@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useParams } from "react-router-dom";
-import api from "../../api";
+import axios from "axios";
+
+const CANISTER_URL = "https://aihxp-bqaaa-aaaah-ariyq-cai.icp0.io";
 
 function Post({ blogs, getBlogs }) {
   const { id } = useParams();
@@ -18,7 +20,7 @@ function Post({ blogs, getBlogs }) {
   const [editingCommentText, setEditingCommentText] = useState("");
 
   async function fetchTags() {
-    const res = await api.get("/tags");
+    const res = await axios.get(`${CANISTER_URL}/tags`);
     setAvailableTags(res.data);
   }
 
@@ -36,7 +38,7 @@ function Post({ blogs, getBlogs }) {
 
   async function handleSave() {
     try {
-      await api.put(`/posts/${blog.id}`, {
+      await axios.put(`${CANISTER_URL}/posts/${blog.id}`, {
         title,
         content,
         tags: selectedTags,
@@ -52,7 +54,7 @@ function Post({ blogs, getBlogs }) {
   async function handleAddComment() {
     if (comment.trim() === "") return;
     try {
-      await api.post(`/posts/${blog.id}/comments`, { content: comment });
+      await axios.post(`${CANISTER_URL}/posts/${blog.id}/comments`, { content: comment });
       setComment("");
       getBlogs();
     } catch (err) {
@@ -71,7 +73,7 @@ function Post({ blogs, getBlogs }) {
   async function handleSaveComment(commentId) {
     if (editingCommentText.trim() === "") return;
     try {
-      await api.put(`/posts/${blog.id}/comments/${commentId}`, { content: editingCommentText });
+      await axios.put(`${CANISTER_URL}/posts/${blog.id}/comments/${commentId}`, { content: editingCommentText });
       setEditingCommentId(null);
       setEditingCommentText("");
       getBlogs();
@@ -82,7 +84,7 @@ function Post({ blogs, getBlogs }) {
 
   async function handleRemoveComment(commentId) {
     try {
-      await api.delete(`/posts/${blog.id}/comments/${commentId}`);
+      await axios.delete(`${CANISTER_URL}/posts/${blog.id}/comments/${commentId}`);
       getBlogs();
     } catch (err) {
       setMessage("Błąd usuwania komentarza");
