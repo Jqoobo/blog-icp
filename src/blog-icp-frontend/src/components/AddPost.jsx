@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { apiMutate } from "../api_ic";
 
 function AddPost({ getBlogs, getTags }) {
   const [title, setTitle] = useState("");
@@ -30,10 +31,10 @@ function AddPost({ getBlogs, getTags }) {
       return;
     }
     try {
-      await axios.post(`${CANISTER_URL}/posts`, {
-        title,
-        content,
-        tags: selectedTags,
+      await apiMutate({
+        method: "POST",
+        path: "/posts",
+        data: { title, content, tags: selectedTags },
       });
       setMessage("Post added successfully!");
       setTitle("");
@@ -49,7 +50,11 @@ function AddPost({ getBlogs, getTags }) {
   async function handleAddTag() {
     if (newTag.trim() === "") return;
     try {
-      await api.post(`/tags`, { tag: newTag });
+      await apiMutate({
+        method: "POST",
+        path: "/tags",
+        data: { tag: newTag },
+      });
       setMessage("Tag added successfully!");
       setNewTag("");
       fetchTags();

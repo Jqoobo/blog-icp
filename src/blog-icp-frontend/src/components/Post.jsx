@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
+import { apiMutate } from "../api_ic";
 
 const CANISTER_URL = "https://aihxp-bqaaa-aaaah-ariyq-cai.icp0.io/api";
 
@@ -38,10 +39,10 @@ function Post({ blogs, getBlogs }) {
 
   async function handleSave() {
     try {
-      await axios.put(`${CANISTER_URL}/posts/${blog.id}`, {
-        title,
-        content,
-        tags: selectedTags,
+      await apiMutate({
+        method: "PUT",
+        path: `/posts/${blog.id}`,
+        data: { title, content, tags: selectedTags },
       });
       setMessage("Post updated successfully!");
       setIsEditing(false);
@@ -54,7 +55,11 @@ function Post({ blogs, getBlogs }) {
   async function handleAddComment() {
     if (comment.trim() === "") return;
     try {
-      await axios.post(`${CANISTER_URL}/posts/${blog.id}/comments`, { content: comment });
+      await apiMutate({
+        method: "POST",
+        path: `/posts/${blog.id}/comments`,
+        data: { content: comment },
+      });
       setComment("");
       getBlogs();
     } catch (err) {
@@ -73,7 +78,11 @@ function Post({ blogs, getBlogs }) {
   async function handleSaveComment(commentId) {
     if (editingCommentText.trim() === "") return;
     try {
-      await axios.put(`${CANISTER_URL}/posts/${blog.id}/comments/${commentId}`, { content: editingCommentText });
+      await apiMutate({
+        method: "PUT",
+        path: `/posts/${blog.id}/comments/${commentId}`,
+        data: { content: editingCommentText },
+      });
       setEditingCommentId(null);
       setEditingCommentText("");
       getBlogs();
@@ -84,7 +93,10 @@ function Post({ blogs, getBlogs }) {
 
   async function handleRemoveComment(commentId) {
     try {
-      await axios.delete(`${CANISTER_URL}/posts/${blog.id}/comments/${commentId}`);
+      await apiMutate({
+        method: "DELETE",
+        path: `/posts/${blog.id}/comments/${commentId}`,
+      });
       getBlogs();
     } catch (err) {
       setMessage("Błąd usuwania komentarza");
